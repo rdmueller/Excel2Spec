@@ -20,6 +20,7 @@ def blockTranslation = [
                         'wenn'       : 'when:   ',
                         'und'        : 'and:    ',
                         'dann'       : 'then:   ',
+                        'erwartet'   : 'expect: ',
                         'wobei'      : 'where:  ',
                        ]
 
@@ -39,7 +40,8 @@ new File('.').listFiles({file,name-> name ==~ /.*Spec.xml$/} as FilenameFilter).
                 def code = """\
                             package pages
                             import geb.Page
-                            
+                            import spock.lang.Ignore
+
                             class $technical    extends Page {
                                 
                                 static    url = "$url"
@@ -70,7 +72,7 @@ new File('.').listFiles({file,name-> name ==~ /.*Spec.xml$/} as FilenameFilter).
             worksheet.Table.Row[1..-1].each { row ->
                 def (featureName,block,description,response,screenshot,comment) = rowToList(row)
             if (featureName) {
-                code += "${withinFeature++?"    }\n\n":''}    def '${featureName.replaceAll("'",'\'')}'() {\n"
+                code += "${withinFeature++?"    }\n\n":''}    @Ignore(\"not implemented\")\ndef '${featureName.replaceAll("'",'\'')}'() {\n"
             } else {
                 block = block?.toLowerCase()?.replaceAll("[^a-z]","")
                 block = blockTranslation[block]?:block
@@ -80,12 +82,16 @@ new File('.').listFiles({file,name-> name ==~ /.*Spec.xml$/} as FilenameFilter).
                 }
                 
                 code += "        ${block}\"${description?.replaceAll('"',"'")}\"${comment?.trim()?"\t//$comment":""}\n"
-                if (response) {
-                    code += "            at $response\n"
-                    pages << response
-                }
                 if (screenshot) {
                     code += "            report '$screenshot'\n"
+                }
+                if (response) {
+                    if (block.startsWith('given')) {
+                        code += "            to $response\n"
+                    } else {
+                        code += "            at $response\n"
+                    }
+                    pages << response
                 }
                 code += "            //TODO: implement test step\n"
             }
